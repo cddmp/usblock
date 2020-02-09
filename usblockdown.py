@@ -11,30 +11,29 @@ import sys
 import pyudev
 import usb
 
-class Colors:
-    reset = '\033[0m'
-    red = '\033[91m'
-    green = '\033[92m'
-    yellow = '\033[93m'
-    blue = '\033[94m'
+RESET = '\033[0m'
+RED = '\033[91m'
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+BLUE = '\033[94m'
 
 def red(msg):
-    return f"{Colors.red}{msg}{Colors.reset}"
+    return f"{RED}{msg}{RESET}"
 
 def blue(msg):
-    return f"{Colors.blue}{msg}{Colors.reset}"
+    return f"{BLUE}{msg}{RESET}"
 
 def green(msg):
-    return f"{Colors.green}{msg}{Colors.reset}"
+    return f"{GREEN}{msg}{RESET}"
 
 def yellow(msg):
-    return f"{Colors.yellow}{msg}{Colors.reset}"
+    return f"{YELLOW}{msg}{RESET}"
 
 def print_info(msg):
-    print(f"{Colors.blue}{msg}{Colors.reset}")
+    print(f"{BLUE}{msg}{RESET}")
 
 def print_error(msg):
-    print(f"{Colors.red}{msg}{Colors.reset}")
+    print(f"{RED}{msg}{RESET}")
 
 def get_interface_string(intf):
     '''Takes an interface and returns a colored string representation.'''
@@ -50,6 +49,19 @@ def get_interface_string(intf):
             line = yellow(line)
         intf_string += f"{line}\n"
     return intf_string
+
+def get_interface_class_string(intf):
+    '''Takes an interface and returns the device class as string.'''
+    intf_class_string = ""
+    for line in str(intf).splitlines():
+        if "bInterfaceClass" in line:
+            try:
+                #Example: bInterfaceClass    :    0x1 Audio
+                intf_class_string = line.split(":")[1].lstrip().rstrip().split(" ", 1)[1]
+            except Exception as e:
+                intf_class_string = "n/a"
+            break
+    return intf_class_string
 
 def get_device_string(dev):
     '''Takes a device and returns a colored string representation.'''
@@ -132,20 +144,20 @@ def handle_device(path, dev):
         for intf in cfg:
             path_intf = f"{path}/{path.rsplit('/',1)[1]}:{str(cfg.index+1)}.{str(intf.index)}"
             print(f"Allow Interface {yellow(str(intf.index) + ',' + str(intf.bAlternateSetting))} "\
-                  f"({red(usb.core._try_lookup(usb.core._lu.interface_classes,intf.bInterfaceClass))}) in Configuration {yellow(str(cfg.index+1))}?")
+                  f"({red(get_interface_class_string(intf))}) in Configuration {yellow(str(cfg.index+1))}?")
             print(f"{blue('1')} => unlock & probe driver")
             print(f"{blue('2')} => unlock only")
             print(f"{blue('Other key')} => keep locked")
             line = sys.stdin.readline().rstrip()
             if line == "1":
                 unlock_single_interface(path_intf, probe_driver=True)
-                print_info("Unlocked interface...")
+                print_info("Unlocked interface...\n")
             elif line == "2":
                 unlock_single_interface(path_intf, probe_driver=False)
                 print_info("Unlocked interface, didn't probe driver.")
-                print("Interface: " + path_intf.rsplit('/', 1)[1])
+                print(f"Manually unlock via: echo {blue(path_intf.rsplit('/', 1)[1])} > /sys/bus/usb/drivers_probe \n")
             else:
-                print_info("Keeping interface locked...")
+                print_info("Keeping interface locked...\n")
 
 def main():
     print_info(f"\n{10*'#'} USBlockdown {10*'#'}\n")
@@ -185,10 +197,10 @@ def main():
             if line == "no":
                 print_info("Keeping USB locked...")
                 break
-        print_info("Exiting.")
+        print("Exiting.")
 
     except Exception as e:
-        print(f"Panic:\n{str(e)}")
+        print_error(f"Panic:\n{str(e)}")
         sys.exit(1)
 
 if __name__ == "__main__":
