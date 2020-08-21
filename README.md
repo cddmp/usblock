@@ -1,4 +1,4 @@
-# usb-lockdown-linux
+# usblock
 
 A simple tool to protect against malicious USB devices.
 
