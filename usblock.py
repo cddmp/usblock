@@ -160,7 +160,7 @@ def handle_device(path, dev):
                 print_info("Keeping interface locked...\n")
 
 def main():
-    print_info(f"\n{10*'#'} USBlockdown {10*'#'}\n")
+    print_info(f"\n{10*'#'} USBlock {10*'#'}\n")
 
     if os.getuid() != 0:
         print_error("You need to have root privileges to run this script.\n")
